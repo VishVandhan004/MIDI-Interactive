@@ -9,7 +9,7 @@
 - HTML
 - CSS
 - Javascript
-- Flask.
+- Flask
 
 ### LIBRARIES:
 - mido pygame
