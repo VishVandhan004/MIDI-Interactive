@@ -1,14 +1,23 @@
 import mido
 
-# ————————————————
-# MIDI setup
-# ————————————————
-mido.set_backend('mido.backends.rtmidi')
-output_port = mido.open_output()
+# ————————————————————————————————
+# MIDI setup with graceful fallback
+# ————————————————————————————————
+try:
+    # Use RtMidi backend and open a virtual ALSA port
+    mido.set_backend('mido.backends.rtmidi')
+    output_port = mido.open_output(virtual=True)
+except Exception as e:
+    # On Render (or any headless server) this will likely fail.
+    # Fall back to a dummy port that swallows messages.
+    print("⚠️  Warning: MIDI output unavailable, running in dummy mode:", e)
+    class DummyPort:
+        def send(self, msg): pass
+    output_port = DummyPort()
 
-# ————————————————
+# ————————————————————————————————
 # GM instruments (128 total)
-# ————————————————
+# ————————————————————————————————
 gm_instruments = [
     "Acoustic Grand Piano", "Bright Acoustic Piano", "Electric Grand Piano", "Honky-tonk Piano",
     "Electric Piano 1 (Rhodes Piano)", "Electric Piano 2 (Chorused Rhodes)", "Harpsichord", "Clavinet",
@@ -34,9 +43,9 @@ gm_instruments = [
     "Applause", "Gunshot"
 ]
 
-# ————————————————
+# ————————————————————————————————
 # Note mapping (Sa Re Ga Ma…)
-# ————————————————
+# ————————————————————————————————
 key_to_note = {
     'sa': 60,     # C4
     're': 62,     # D4
@@ -48,14 +57,14 @@ key_to_note = {
     'sa_high': 72 # C5
 }
 
-# ————————————————
+# ————————————————————————————————
 # State: current program (instrument)
-# ————————————————
+# ————————————————————————————————
 current_program = 0
 
-# ————————————————
-# Helpers
-# ————————————————
+# ————————————————————————————————
+# Helpers to change instrument
+# ————————————————————————————————
 def set_program_by_number(n):
     """Set current_program to n (0–127)."""
     global current_program
@@ -68,23 +77,20 @@ def set_program_by_name(name):
     if name in gm_instruments:
         current_program = gm_instruments.index(name)
 
-# ————————————————
-# Play / stop functions
-# ————————————————
+# ————————————————————————————————
+# Play / stop functions (called by Flask routes)
+# ————————————————————————————————
 def play_note(note_name):
     """Send program change + note_on for given note_name."""
     if note_name in key_to_note:
         note = key_to_note[note_name]
-        # send program change
-        pc = mido.Message('program_change', program=current_program, channel=0)
-        # send note on
-        on = mido.Message('note_on', note=note, velocity=64, channel=0)
-        output_port.send(pc)
-        output_port.send(on)
+        # program change
+        output_port.send(mido.Message('program_change', program=current_program, channel=0))
+        # note on
+        output_port.send(mido.Message('note_on', note=note, velocity=64, channel=0))
 
 def stop_note(note_name):
     """Send note_off for given note_name."""
     if note_name in key_to_note:
         note = key_to_note[note_name]
-        off = mido.Message('note_off', note=note, velocity=64, channel=0)
-        output_port.send(off)
+        output_port.send(mido.Message('note_off', note=note, velocity=64, channel=0))
