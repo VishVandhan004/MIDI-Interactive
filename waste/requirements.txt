@@ -1,0 +1,6 @@
+pygame  # if used
+numpy   # if used
+keyboard
+pynput
+python-rtmidi
+flask

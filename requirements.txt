@@ -1,0 +1,4 @@
+Flask
+mido
+pynput
+python-rtmidi
