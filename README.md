@@ -25,3 +25,6 @@
 - Create a pull request
 - Star this repository
 - Wait for pull request to merge
+
+## SCREENSHOTS : 
+![Piano GUI](image.png)
